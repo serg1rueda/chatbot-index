@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Chatbot Interactivo</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f9f4;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+}
+#chat-container {
+  width:420px;
+  height:620px;
+  border:1px solid #ccc;
+  border-radius:15px;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 0 15px rgba(0,0,0,0.2);
+}
+#messages {
+  flex:1;
+  padding:15px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+}
+.message {
+  margin:8px 0;
+  padding:10px 15px;
+  border-radius:20px;
+  max-width:75%;
+  word-wrap:break-word;
+  opacity:0;
+  animation:fadeIn 0.3s forwards;
+}
+@keyframes fadeIn {to {opacity:1;}}
+.user {
+  background:#4e9af1;
+  color:white;
+  align-self:flex-end;
+}
+.bot {
+  background:#e4e6eb;
+  color:black;
+  align-self:flex-start;
+}
+#input-container {
+  display:flex;
+  border-top:1px solid #ccc;
+}
+#input {
+  flex:1;
+  border:none;
+  padding:12px;
+  font-size:16px;
+}
+#send {
+  background:#4e9af1;
+  color:white;
+  border:none;
+  padding:0 20px;
+  cursor:pointer;
+  font-weight:bold;
+}
+#send:hover {
+  background:#2d74c7;
+}
+#buttons {
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  justify-content:center;
+  padding:10px;
+  border-top:1px solid #ccc;
+  background:#f9f9f9;
+}
+#buttons button {
+  padding:8px 12px;
+  border:none;
+  border-radius:12px;
+  background:#4e9af1;
+  color:white;
+  cursor:pointer;
+  font-size:14px;
+}
+#buttons button:hover {
+  background:#2d74c7;
+}
+</style>
+</head>
+<body>
+<div id="chat-container">
+  <div id="messages">
+    <div class="message bot">👋 ¡Hola! Soy tu asistente de inducción. Primero sigue el registro escribiendo tu *nombre completo*.</div>
+  </div>
+
+  <div id="buttons">
+    <button onclick="preguntar('riesgos')">Riesgos y Peligros</button>
+    <button onclick="preguntar('aspectos')">Aspectos Ambientales</button>
+    <button onclick="preguntar('impacto')">Impacto Ambiental</button>
+    <button onclick="preguntar('procedimientos')">Procedimientos Seguros</button>
+    <button onclick="preguntar('comites')">Comités</button>
+    <button onclick="preguntar('emergencias')">Plan de Emergencias</button>
+    <button onclick="preguntar('responsabilidades')">Funciones y Responsabilidades</button>
+    <button onclick="preguntar('tema')">📌 Elegir Tema</button>
+  </div>
+
+  <div id="input-container">
+    <input type="text" id="input" placeholder="Escribe tu respuesta aquí..." />
+    <button id="send">Enviar</button>
+  </div>
+</div>
+
+<script>
+const messages = document.getElementById("messages");
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("send");
+const API_URL = "https://chatbot-9v4j.onrender.com/chat";
+
+// Generar siempre un nuevo usuario para pruebas
+const usuario_id = Math.random().toString(36).substr(2, 9);
+console.log("Nuevo usuario_id generado:", usuario_id);
+
+function addMessage(text, sender) {
+  if (!text) return;
+  const div = document.createElement("div");
+  div.classList.add("message", sender);
+  div.textContent = text;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function renderTemas(lista) {
+  lista.forEach(t => addMessage("📌 " + t, "bot"));
+}
+
+async function enviarPregunta(pregunta) {
+  const typingDiv = document.createElement("div");
+  typingDiv.classList.add("message", "bot");
+  typingDiv.textContent = "✍️ Escribiendo...";
+  messages.appendChild(typingDiv);
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pregunta, usuario_id })
+    });
+
+    const data = await response.json();
+    messages.removeChild(typingDiv);
+
+    if (data.respuesta) addMessage(data.respuesta, "bot");
+    if (data.siguiente) addMessage(data.siguiente, "bot");
+    if (data.temas) renderTemas(data.temas);
+
+  } catch (error) {
+    typingDiv.textContent = "❌ Error de conexión con el servidor";
+  }
+}
+
+sendBtn.addEventListener("click", () => {
+  const question = input.value.trim();
+  if (!question) return;
+  addMessage(question, "user");
+  input.value = "";
+  enviarPregunta(question);
+});
+
+input.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendBtn.click();
+});
+
+function preguntar(tema) {
+  addMessage(tema, "user");
+  enviarPregunta(tema);
+}
+</script>
+</body>
+</html>
