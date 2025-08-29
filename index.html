@@ -4,95 +4,21 @@
 <meta charset="UTF-8">
 <title>Chatbot Interactivo</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background:#f4f9f4;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-  margin:0;
-}
-#chat-container {
-  width:420px;
-  height:620px;
-  border:1px solid #ccc;
-  border-radius:15px;
-  background:#fff;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-  box-shadow:0 0 15px rgba(0,0,0,0.2);
-}
-#messages {
-  flex:1;
-  padding:15px;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-}
-.message {
-  margin:8px 0;
-  padding:10px 15px;
-  border-radius:20px;
-  max-width:75%;
-  word-wrap:break-word;
-  opacity:0;
-  animation:fadeIn 0.3s forwards;
-}
+body { font-family: Arial, sans-serif; background:#f4f9f4; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
+#chat-container { width:420px; height:620px; border:1px solid #ccc; border-radius:15px; background:#fff; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 15px rgba(0,0,0,0.2); }
+#messages { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; }
+.message { margin:8px 0; padding:10px 15px; border-radius:20px; max-width:75%; word-wrap:break-word; opacity:0; animation:fadeIn 0.3s forwards; }
 @keyframes fadeIn {to {opacity:1;}}
-.user {
-  background:#4e9af1;
-  color:white;
-  align-self:flex-end;
-}
-.bot {
-  background:#e4e6eb;
-  color:black;
-  align-self:flex-start;
-}
-#input-container {
-  display:flex;
-  border-top:1px solid #ccc;
-}
-#input {
-  flex:1;
-  border:none;
-  padding:12px;
-  font-size:16px;
-}
-#send {
-  background:#4e9af1;
-  color:white;
-  border:none;
-  padding:0 20px;
-  cursor:pointer;
-  font-weight:bold;
-}
-#send:hover {
-  background:#2d74c7;
-}
-#buttons {
-  display:flex;
-  flex-wrap:wrap;
-  gap:5px;
-  justify-content:center;
-  padding:10px;
-  border-top:1px solid #ccc;
-  background:#f9f9f9;
-}
-#buttons button {
-  padding:8px 12px;
-  border:none;
-  border-radius:12px;
-  background:#4e9af1;
-  color:white;
-  cursor:pointer;
-  font-size:14px;
-}
-#buttons button:hover {
-  background:#2d74c7;
-}
+.user { background:#4e9af1; color:white; align-self:flex-end; }
+.bot { background:#e4e6eb; color:black; align-self:flex-start; }
+#input-container { display:flex; border-top:1px solid #ccc; }
+#input { flex:1; border:none; padding:12px; font-size:16px; }
+#send { background:#4e9af1; color:white; border:none; padding:0 20px; cursor:pointer; font-weight:bold; }
+#send:hover { background:#2d74c7; }
+#buttons { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; padding:10px; border-top:1px solid #ccc; background:#f9f9f9; }
+#buttons button { padding:8px 12px; border:none; border-radius:12px; background:#4e9af1; color:white; cursor:pointer; font-size:14px; opacity:0; transition: opacity 0.5s ease-in-out; }
+#buttons button.show { opacity:1; }
+#buttons button:hover { background:#2d74c7; }
 </style>
 </head>
 <body>
@@ -109,7 +35,7 @@ body {
     <button onclick="preguntar('comites')">Comités</button>
     <button onclick="preguntar('emergencias')">Plan de Emergencias</button>
     <button onclick="preguntar('responsabilidades')">Funciones y Responsabilidades</button>
-    <button onclick="preguntar('tema')">📌 Elegir Tema</button>
+    <button onclick="enviarTema()">📌 Elegir Tema</button>
   </div>
 
   <div id="input-container">
@@ -122,11 +48,16 @@ body {
 const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("send");
-const API_URL = "https://chatbot-9v4j.onrender.com/chat";
+const buttons = document.getElementById("buttons");
+const API_URL = "https://chatbot-idmv.onrender.com/chat"; // ajusta según deployment
 
-// Generar siempre un nuevo usuario para pruebas
 const usuario_id = Math.random().toString(36).substr(2, 9);
-console.log("Nuevo usuario_id generado:", usuario_id);
+
+// control de estado
+let esperandoDocumento = false;  // controla si se está pidiendo documento
+let documentoRegistrado = false;  // recuerda si ya se ingresó
+let temaSeleccionado = null;
+let temaActual = null;
 
 function addMessage(text, sender) {
   if (!text) return;
@@ -135,13 +66,31 @@ function addMessage(text, sender) {
   div.textContent = text;
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
+
+  // activar modo Documento solo si NO se ha registrado
+  if (!documentoRegistrado && sender === "bot" && text.toLowerCase().includes("documento")) {
+    esperandoDocumento = true;
+  }
+
+  // fin de registro
+  if (sender === "bot" && text.toLowerCase().replace(/\s/g,'').includes("registrocompletado")) {
+    esperandoDocumento = false;
+    documentoRegistrado = true;
+    mostrarBotonesTemas();
+  }
+
+  // fin de tema
+  if (sender === "bot" && text.toLowerCase().includes("fin del tema")) {
+    temaActual = null;
+    mostrarBotonesTemas();
+  }
 }
 
 function renderTemas(lista) {
   lista.forEach(t => addMessage("📌 " + t, "bot"));
 }
 
-async function enviarPregunta(pregunta) {
+async function enviarPregunta(preguntaTexto) {
   const typingDiv = document.createElement("div");
   typingDiv.classList.add("message", "bot");
   typingDiv.textContent = "✍️ Escribiendo...";
@@ -149,40 +98,139 @@ async function enviarPregunta(pregunta) {
   messages.scrollTop = messages.scrollHeight;
 
   try {
-    const response = await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pregunta, usuario_id })
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ pregunta: preguntaTexto, usuario_id })
     });
-
-    const data = await response.json();
+    const data = await res.json();
     messages.removeChild(typingDiv);
-
-    if (data.respuesta) addMessage(data.respuesta, "bot");
-    if (data.siguiente) addMessage(data.siguiente, "bot");
-    if (data.temas) renderTemas(data.temas);
-
-  } catch (error) {
+    manejarRespuesta(data);
+  } catch (err) {
     typingDiv.textContent = "❌ Error de conexión con el servidor";
   }
 }
 
+function manejarRespuesta(data) {
+  if (!data) return;
+
+  if (data.respuesta) addMessage(data.respuesta, "bot");
+  if (data.siguiente) addMessage(data.siguiente, "bot");
+  if (data.confirm) addMessage(data.confirm, "bot");
+  if (data.temas) renderTemas(data.temas);
+
+  if (data.pregunta) addMessage(data.pregunta, "bot");
+  if (data.opciones) {
+    const opts = data.opciones.map(o => `• ${o}`).join("\n");
+    addMessage("Opciones:\n" + opts, "bot");
+  }
+
+  if (data.temas) {
+    mostrarBotonesTemas();
+    temaActual = null;
+    temaSeleccionado = null;
+  }
+
+  if (data.pregunta && temaSeleccionado) {
+    temaActual = temaSeleccionado;
+    temaSeleccionado = null;
+    ocultarBotonesTemas();
+  }
+
+  if (data.respuesta && data.respuesta.toLowerCase().includes("has completado el tema")) {
+    mostrarBotonesTemas();
+    temaActual = null;
+    temaSeleccionado = null;
+  }
+}
+
+function enviarTema() {
+  if (!documentoRegistrado) {
+    addMessage("⚠️ Debes ingresar tu documento antes de elegir un tema.", "bot");
+    return;
+  }
+  addMessage("📌 tema", "user");
+  enviarPregunta("tema");
+  temaSeleccionado = null;
+}
+
 sendBtn.addEventListener("click", () => {
-  const question = input.value.trim();
-  if (!question) return;
-  addMessage(question, "user");
+  let q = input.value.trim();
+  if (!q) return;
+
+  // SOLO valida documento si NO se ha registrado
+  if (!documentoRegistrado && esperandoDocumento) {
+    if (!/^\d+$/.test(q)) {
+      addMessage("⚠️ El documento solo puede contener números.", "bot");
+      input.value = "";
+      return;
+    }
+    esperandoDocumento = false;
+    documentoRegistrado = true;
+    mostrarBotonesTemas();
+  }
+
+  addMessage(q, "user");
   input.value = "";
-  enviarPregunta(question);
+  enviarPregunta(q);
 });
 
 input.addEventListener("keypress", (e) => {
   if (e.key === "Enter") sendBtn.click();
+  if (!documentoRegistrado && esperandoDocumento && !/[0-9]/.test(e.key)) {
+    e.preventDefault();
+  }
+});
+
+input.addEventListener("paste", (e) => {
+  if (!documentoRegistrado && esperandoDocumento) {
+    const pasted = e.clipboardData.getData("text");
+    if (!/^\d+$/.test(pasted)) e.preventDefault();
+  }
 });
 
 function preguntar(tema) {
-  addMessage(tema, "user");
-  enviarPregunta(tema);
+  if (!documentoRegistrado) {
+    addMessage("⚠️ Debes ingresar tu documento antes de elegir un tema.", "bot");
+    return;
+  }
+  if (temaActual) {
+    addMessage("⚠️ Debes terminar el tema actual antes de elegir otro.", "bot");
+    return;
+  }
+
+  addMessage("📌 " + tema, "user");
+  temaSeleccionado = tema;
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ pregunta: tema, usuario_id })
+  })
+  .then(r => r.json())
+  .then(data => manejarRespuesta(data))
+  .catch(() => addMessage("❌ Error de conexión con el servidor", "bot"));
 }
+
+function ocultarBotonesTemas() {
+  const botones = buttons.querySelectorAll("button");
+  botones.forEach(btn => {
+    if (btn.textContent !== "📌 Elegir Tema") {
+      btn.classList.remove("show");
+      setTimeout(() => btn.style.display = "none", 300);
+    }
+  });
+}
+
+function mostrarBotonesTemas() {
+  const botones = buttons.querySelectorAll("button");
+  botones.forEach(btn => {
+    btn.style.display = "inline-block";
+    setTimeout(() => btn.classList.add("show"), 50);
+  });
+}
+
+mostrarBotonesTemas();
 </script>
 </body>
 </html>
