@@ -8,48 +8,44 @@ body { font-family: Arial, sans-serif; background:#f4f9f4; display:flex; justify
 #chat-container { width:420px; height:620px; border:1px solid #ccc; border-radius:15px; background:#fff; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 15px rgba(0,0,0,0.2); }
 #messages { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; }
 .message { margin:8px 0; padding:10px 15px; border-radius:20px; max-width:75%; word-wrap:break-word; opacity:0; animation:fadeIn 0.3s forwards; }
-body { font-family: Arial, sans-serif; background:#f4f9f4; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
-#chat-container { width:420px; height:620px; border:1px solid #ccc; border-radius:15px; background:#fff; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 15px rgba(0,0,0,0.2); }
-#messages { flex:1; padding:15px; overflow-y:auto; display:flex; flex-direction:column; }
-.message { margin:8px 0; padding:10px 15px; border-radius:20px; max-width:75%; word-wrap:break-word; opacity:0; animation:fadeIn 0.3s forwards; }
 @keyframes fadeIn {to {opacity:1;}}
 .user { background:#4e9af1; color:white; align-self:flex-end; }
-.bot { background:#e4e6eb; color:black; align-self:flex-start; }
+.bot { background:#e4e6eb; color:black; align-self:flex-start; white-space:pre-line; }
 #input-container { display:flex; border-top:1px solid #ccc; }
 #input { flex:1; border:none; padding:12px; font-size:16px; }
 #send { background:#4e9af1; color:white; border:none; padding:0 20px; cursor:pointer; font-weight:bold; }
 #send:hover { background:#2d74c7; }
 #buttons { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; padding:10px; border-top:1px solid #ccc; background:#f9f9f9; }
-#buttons button { padding:8px 12px; border:none; border-radius:12px; background:#4e9af1; color:white; cursor:pointer; font-size:14px; opacity:0; transition: opacity 0.5s ease-in-out; }
+#buttons button { padding:8px 12px; border:none; border-radius:12px; background:#4e9af1; color:white; cursor:pointer; font-size:14px; opacity:0; transition: opacity 0.5s ease-in-out; position:relative; }
 #buttons button.show { opacity:1; }
 #buttons button:hover { background:#2d74c7; }
-.user { background:#4e9af1; color:white; align-self:flex-end; }
-.bot { background:#e4e6eb; color:black; align-self:flex-start; }
-#input-container { display:flex; border-top:1px solid #ccc; }
-#input { flex:1; border:none; padding:12px; font-size:16px; }
-#send { background:#4e9af1; color:white; border:none; padding:0 20px; cursor:pointer; font-weight:bold; }
-#send:hover { background:#2d74c7; }
-#buttons { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; padding:10px; border-top:1px solid #ccc; background:#f9f9f9; }
-#buttons button { padding:8px 12px; border:none; border-radius:12px; background:#4e9af1; color:white; cursor:pointer; font-size:14px; opacity:0; transition: opacity 0.5s ease-in-out; }
-#buttons button.show { opacity:1; }
-#buttons button:hover { background:#2d74c7; }
+
+/* ✅ estilo para botones completados */
+#buttons button.completed {
+  background: #ccc !important;
+  color: #666 !important;
+  cursor: not-allowed !important;
+}
+#buttons button.completed::after {
+  content: "✔️";
+  position: absolute;
+  right: 8px;
+  font-size: 16px;
+}
 </style>
 </head>
 <body>
 <div id="chat-container">
-  <div id="messages">
-    <div class="message bot">👋 ¡Hola! Soy tu asistente de inducción. Primero sigue el registro escribiendo tu *nombre completo*.</div>
-  </div>
+  <div id="messages"></div>
 
   <div id="buttons">
-    <button onclick="preguntar('riesgos')">Riesgos y Peligros</button>
-    <button onclick="preguntar('aspectos')">Aspectos Ambientales</button>
-    <button onclick="preguntar('impacto')">Impacto Ambiental</button>
-    <button onclick="preguntar('procedimientos')">Procedimientos Seguros</button>
-    <button onclick="preguntar('comites')">Comités</button>
-    <button onclick="preguntar('emergencias')">Plan de Emergencias</button>
-    <button onclick="preguntar('responsabilidades')">Funciones y Responsabilidades</button>
-    <button onclick="enviarTema()">📌 Elegir Tema</button>
+    <button onclick="preguntar('riesgos')">1. Riesgos y Peligros</button>
+    <button onclick="preguntar('aspectos')">2. Aspectos Ambientales</button>
+    <button onclick="preguntar('impacto')">3. Impacto Ambiental</button>
+    <button onclick="preguntar('procedimientos')">4. Procedimientos Seguros</button>
+    <button onclick="preguntar('comites')">5. Comités</button>
+    <button onclick="preguntar('emergencias')">6. Plan de Emergencias</button>
+    <button onclick="preguntar('responsabilidades')">7. Funciones y Responsabilidades</button>
     <button onclick="enviarTema()">📌 Elegir Tema</button>
   </div>
 
@@ -64,17 +60,9 @@ const messages = document.getElementById("messages");
 const input = document.getElementById("input");
 const sendBtn = document.getElementById("send");
 const buttons = document.getElementById("buttons");
-const API_URL = "https://chatbot-idmv.onrender.com/chat"; // ajusta según deployment
-const buttons = document.getElementById("buttons");
 const API_URL = "https://chatbot-9v4j.onrender.com/chat"; // cambia según tu backend
 
 const usuario_id = Math.random().toString(36).substr(2, 9);
-
-// control de estado
-let esperandoDocumento = false;  // controla si se está pidiendo documento
-let documentoRegistrado = false;  // recuerda si ya se ingresó
-let temaSeleccionado = null;
-let temaActual = null;
 
 let temaSeleccionado = null;
 let temaActual = null;
@@ -96,52 +84,29 @@ function addMessage(text, sender) {
   if (!text) return;
   const div = document.createElement("div");
   div.classList.add("message", sender);
-  div.textContent = text;
+  div.innerHTML = text.replace(/\n/g, "<br>");
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
 
-  // activar modo Documento solo si NO se ha registrado
-  if (!documentoRegistrado && sender === "bot" && text.toLowerCase().includes("documento")) {
+  if (sender === "bot" && text.toLowerCase().includes("documento")) {
     esperandoDocumento = true;
+    esperandoNombre = false;
   }
 
-  // fin de registro
   if (sender === "bot" && text.toLowerCase().replace(/\s/g,'').includes("registrocompletado")) {
     esperandoDocumento = false;
-    documentoRegistrado = true;
-    mostrarBotonesTemas();
-  }
-
-  // fin de tema
-  if (sender === "bot" && text.toLowerCase().includes("fin del tema")) {
+    esperandoNombre = false;
     temaActual = null;
     mostrarBotonesTemas();
   }
 
-  // activar modo Documento solo si NO se ha registrado
-  if (!documentoRegistrado && sender === "bot" && text.toLowerCase().includes("documento")) {
-    esperandoDocumento = true;
-  }
-
-  // fin de registro
-  if (sender === "bot" && text.toLowerCase().replace(/\s/g,'').includes("registrocompletado")) {
-    esperandoDocumento = false;
-    documentoRegistrado = true;
-    mostrarBotonesTemas();
-  }
-
-  // fin de tema
   if (sender === "bot" && text.toLowerCase().includes("fin del tema")) {
+    marcarTemaCompletado(temaActual);
     temaActual = null;
     mostrarBotonesTemas();
   }
 }
 
-function renderTemas(lista) {
-  lista.forEach(t => addMessage("📌 " + t, "bot"));
-}
-
-async function enviarPregunta(preguntaTexto) {
 async function enviarPregunta(preguntaTexto) {
   const typingDiv = document.createElement("div");
   typingDiv.classList.add("message", "bot");
@@ -151,18 +116,12 @@ async function enviarPregunta(preguntaTexto) {
 
   try {
     const res = await fetch(API_URL, {
-    const res = await fetch(API_URL, {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ pregunta: preguntaTexto, usuario_id })
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({ pregunta: preguntaTexto, usuario_id })
     });
     const data = await res.json();
-    const data = await res.json();
     messages.removeChild(typingDiv);
-    manejarRespuesta(data);
-  } catch (err) {
     manejarRespuesta(data);
   } catch (err) {
     typingDiv.textContent = "❌ Error de conexión con el servidor";
@@ -176,11 +135,11 @@ function manejarRespuesta(data) {
   if (data.siguiente) addMessage(data.siguiente, "bot");
   if (data.confirm) addMessage(data.confirm, "bot");
   if (data.temas) renderTemas(data.temas);
-
   if (data.pregunta) addMessage(data.pregunta, "bot");
+
   if (data.opciones) {
-    const opts = data.opciones.map(o => `• ${o}`).join("\n");
-    addMessage("Opciones:\n" + opts, "bot");
+    const opts = data.opciones.map(o => `• ${o}`).join("<br>");
+    addMessage("Opciones:<br>" + opts, "bot");
   }
 
   if (data.temas) {
@@ -195,58 +154,45 @@ function manejarRespuesta(data) {
     ocultarBotonesTemas();
   }
 
-  if (data.respuesta && data.respuesta.toLowerCase().includes("has completado el tema")) {
-    mostrarBotonesTemas();
+  if (data.respuesta && (
+      data.respuesta.toLowerCase().includes("has completado el tema") ||
+      data.respuesta.toLowerCase().includes("fin del tema")
+    )) {
+    marcarTemaCompletado(temaActual);
     temaActual = null;
     temaSeleccionado = null;
+    mostrarBotonesTemas();
+  }
+
+  if (!esperandoDocumento && !esperandoNombre) {
+    mostrarBotonesTemas();
   }
 }
 
+function marcarTemaCompletado(tema) {
+  if (!tema) return;
+  const nombreBoton = mapaTemas[tema];
+  if (!nombreBoton) return;
+
+  const btns = buttons.querySelectorAll("button");
+  btns.forEach(btn => {
+    if (btn.textContent.trim() === nombreBoton) {
+      btn.classList.add("completed");
+      btn.disabled = true;
+    }
+  });
+}
+
+function renderTemas(lista) {
+  lista.forEach(t => addMessage("📌 " + t, "bot"));
+}
+
 function enviarTema() {
-  if (!documentoRegistrado) {
-    addMessage("⚠️ Debes ingresar tu documento antes de elegir un tema.", "bot");
+  if (esperandoNombre) {
+    addMessage("⚠️ Debes ingresar tu nombre antes de elegir un tema.", "bot");
     return;
   }
-  addMessage("📌 tema", "user");
-  enviarPregunta("tema");
-  temaSeleccionado = null;
-}
-
-function manejarRespuesta(data) {
-  if (!data) return;
-
-  if (data.respuesta) addMessage(data.respuesta, "bot");
-  if (data.siguiente) addMessage(data.siguiente, "bot");
-  if (data.confirm) addMessage(data.confirm, "bot");
-  if (data.temas) renderTemas(data.temas);
-
-  if (data.pregunta) addMessage(data.pregunta, "bot");
-  if (data.opciones) {
-    const opts = data.opciones.map(o => `• ${o}`).join("\n");
-    addMessage("Opciones:\n" + opts, "bot");
-  }
-
-  if (data.temas) {
-    mostrarBotonesTemas();
-    temaActual = null;
-    temaSeleccionado = null;
-  }
-
-  if (data.pregunta && temaSeleccionado) {
-    temaActual = temaSeleccionado;
-    temaSeleccionado = null;
-    ocultarBotonesTemas();
-  }
-
-  if (data.respuesta && data.respuesta.toLowerCase().includes("has completado el tema")) {
-    mostrarBotonesTemas();
-    temaActual = null;
-    temaSeleccionado = null;
-  }
-}
-
-function enviarTema() {
-  if (!documentoRegistrado) {
+  if (esperandoDocumento) {
     addMessage("⚠️ Debes ingresar tu documento antes de elegir un tema.", "bot");
     return;
   }
@@ -259,66 +205,48 @@ sendBtn.addEventListener("click", () => {
   let q = input.value.trim();
   if (!q) return;
 
-  // SOLO valida documento si NO se ha registrado
-  if (!documentoRegistrado && esperandoDocumento) {
-    if (!/^\d+$/.test(q)) {
-      addMessage("⚠️ El documento solo puede contener números.", "bot");
+  if (esperandoNombre) {
+    if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(q)) {
+      addMessage("⚠️ El nombre solo puede contener letras y espacios.", "bot");
       input.value = "";
       return;
     }
-    esperandoDocumento = false;
-    documentoRegistrado = true;
-    mostrarBotonesTemas();
+    esperandoNombre = false;
   }
 
-  addMessage(q, "user");
-  let q = input.value.trim();
-  if (!q) return;
-
-  // SOLO valida documento si NO se ha registrado
-  if (!documentoRegistrado && esperandoDocumento) {
+  if (esperandoDocumento) {
     if (!/^\d+$/.test(q)) {
       addMessage("⚠️ El documento solo puede contener números.", "bot");
       input.value = "";
       return;
     }
     esperandoDocumento = false;
-    documentoRegistrado = true;
     mostrarBotonesTemas();
   }
 
   addMessage(q, "user");
   input.value = "";
   enviarPregunta(q);
-  enviarPregunta(q);
 });
 
 input.addEventListener("keypress", (e) => {
   if (e.key === "Enter") sendBtn.click();
-  if (!documentoRegistrado && esperandoDocumento && !/[0-9]/.test(e.key)) {
-    e.preventDefault();
-  }
+  if (esperandoDocumento && !/[0-9]/.test(e.key)) e.preventDefault();
+  if (esperandoNombre && !/[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/.test(e.key)) e.preventDefault();
 });
 
 input.addEventListener("paste", (e) => {
-  if (!documentoRegistrado && esperandoDocumento) {
-    const pasted = e.clipboardData.getData("text");
-    if (!/^\d+$/.test(pasted)) e.preventDefault();
-  }
-  if (!documentoRegistrado && esperandoDocumento && !/[0-9]/.test(e.key)) {
-    e.preventDefault();
-  }
-});
-
-input.addEventListener("paste", (e) => {
-  if (!documentoRegistrado && esperandoDocumento) {
-    const pasted = e.clipboardData.getData("text");
-    if (!/^\d+$/.test(pasted)) e.preventDefault();
-  }
+  const pasted = e.clipboardData.getData("text");
+  if (esperandoDocumento && !/^\d+$/.test(pasted)) e.preventDefault();
+  if (esperandoNombre && !/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(pasted)) e.preventDefault();
 });
 
 function preguntar(tema) {
-  if (!documentoRegistrado) {
+  if (esperandoNombre) {
+    addMessage("⚠️ Debes ingresar tu nombre antes de elegir un tema.", "bot");
+    return;
+  }
+  if (esperandoDocumento) {
     addMessage("⚠️ Debes ingresar tu documento antes de elegir un tema.", "bot");
     return;
   }
@@ -359,47 +287,11 @@ function mostrarBotonesTemas() {
 }
 
 mostrarBotonesTemas();
-  if (!documentoRegistrado) {
-    addMessage("⚠️ Debes ingresar tu documento antes de elegir un tema.", "bot");
-    return;
-  }
-  if (temaActual) {
-    addMessage("⚠️ Debes terminar el tema actual antes de elegir otro.", "bot");
-    return;
-  }
 
-  addMessage("📌 " + tema, "user");
-  temaSeleccionado = tema;
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ pregunta: tema, usuario_id })
-  })
-  .then(r => r.json())
-  .then(data => manejarRespuesta(data))
-  .catch(() => addMessage("❌ Error de conexión con el servidor", "bot"));
-}
-
-function ocultarBotonesTemas() {
-  const botones = buttons.querySelectorAll("button");
-  botones.forEach(btn => {
-    if (btn.textContent !== "📌 Elegir Tema") {
-      btn.classList.remove("show");
-      setTimeout(() => btn.style.display = "none", 300);
-    }
-  });
-}
-
-function mostrarBotonesTemas() {
-  const botones = buttons.querySelectorAll("button");
-  botones.forEach(btn => {
-    btn.style.display = "inline-block";
-    setTimeout(() => btn.classList.add("show"), 50);
-  });
-}
-
-mostrarBotonesTemas();
+// 🚀 mensaje inicial
+window.addEventListener("DOMContentLoaded", () => {
+  enviarPregunta("");
+});
 </script>
 </body>
 </html>
